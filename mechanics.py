@@ -1,0 +1,26 @@
+﻿# mechanics.py
+from settings import STATION_ID, MAP_SIZE
+
+def check_sanity_status(char):
+    if char.sanity <= 0 and not char.is_dead:
+        print(f"      😱 {char.name} 精神崩潰！(Sanity <= 0)")
+
+def send_to_station(char):
+    print(f"      🛑 {char.name} 被強制轉移至車站，精神 -1")
+    char.location = STATION_ID
+    char.sanity -= 1
+    check_sanity_status(char)
+
+def process_arrival(char, new_location):
+    char.location = new_location
+    if new_location == STATION_ID:
+        return
+    region = new_location // 3
+    if region == char.forbidden_region:
+        print(f"   ⚠️  [警告] {char.name} 誤入禁地 (區域{region})！")
+        send_to_station(char)
+
+def calculate_sunrise_move(current_loc):
+    if current_loc == STATION_ID:
+        return STATION_ID
+    return (current_loc - 1) % MAP_SIZE
