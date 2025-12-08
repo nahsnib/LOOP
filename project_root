@@ -1,0 +1,11 @@
+Loop_Game/
+│
+├── scripts.json       # (資料) 劇本設定檔
+├── settings.py        # (設定) 全域常數、角色資料、讀取 JSON
+├── models.py          # (模型) 定義 Character 和 Grave 類別
+├── mechanics.py       # (機制) 移動、禁地判定
+├── abilities.py       # (機制) 角色特殊能力實作
+├── scenario_gen.py    # (機制) 隨機劇本生成器
+├── main.py            # (核心) 遊戲引擎邏輯 (GameEngine)
+├── gui_main.py        # (介面) 遊戲主程式 (圖形介面入口)
+└── editor.py          # (工具) 劇本編輯器
