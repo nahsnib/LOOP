@@ -1,0 +1,45 @@
+{
+  "Main": [
+    {
+      "name": "活人獻祭",
+      "roles": [
+        {
+          "name": "關鍵人物",
+          "count": 1,
+          "gender": "F"
+        },
+        {
+          "name": "邪教徒",
+          "count": 1,
+          "gender": null
+        }
+      ]
+    },
+    {
+      "name": "暗夜殺機",
+      "roles": [
+        {
+          "name": "殺手",
+          "count": 1,
+          "gender": null
+        }
+      ]
+    }
+  ],
+  "Sub": [
+    {
+      "name": "疑神疑鬼",
+      "roles": [
+        {
+          "name": "散播者",
+          "count": 1,
+          "gender": null
+        }
+      ]
+    },
+    {
+      "name": "平靜無波",
+      "roles": []
+    }
+  ]
+}

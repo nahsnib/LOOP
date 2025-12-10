@@ -6,14 +6,15 @@ from settings import MAP_SIZE, STATION_ID
 from LOOP import GameEngine
 from mechanics import process_arrival
 
-# === 視覺設定 ===
+# 引入新模組
+from ui_components import Button, GameLogger
+
+# === 視覺設定 (保持不變) ===
 SCREEN_WIDTH, SCREEN_HEIGHT = 1024, 768
 BG_COLOR = (20, 20, 30)
 NODE_COLOR = (60, 60, 80)
 TEXT_COLOR = (200, 200, 200)
 HIGHLIGHT_COLOR = (255, 215, 0)
-BTN_COLOR = (50, 50, 70)
-BTN_HOVER_COLOR = (70, 70, 90)
 
 # 精神條與墓碑顏色
 BAR_BG_COLOR = (50, 0, 0)
@@ -21,44 +22,20 @@ BAR_FILL_COLOR = (0, 200, 100)
 BAR_LOW_COLOR = (200, 50, 50)
 GRAVE_COLOR = (80, 80, 80)
 GRAVE_TEXT_COLOR = (150, 150, 150)
-
-# 推理介面設定
-POSSIBLE_ROLES = ["一般人", "殺手", "散播者", "醫生", "邪教徒", "關鍵人物"]
 SOLVE_PANEL_COLOR = (40, 40, 50)
+AP_COLOR = (255, 200, 50) 
 
 CENTER_X, CENTER_Y = SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2
 RADIUS = 250
 NODE_RADIUS = 30
 
-class Button:
-    def __init__(self, x, y, w, h, text, callback):
-        self.rect = pygame.Rect(x, y, w, h)
-        self.text = text
-        self.callback = callback
-        self.hovered = False
-
-    def draw(self, screen, font):
-        color = BTN_HOVER_COLOR if self.hovered else BTN_COLOR
-        pygame.draw.rect(screen, color, self.rect, border_radius=5)
-        pygame.draw.rect(screen, (100,100,100), self.rect, 2, border_radius=5)
-        text_surf = font.render(self.text, True, (255, 255, 255))
-        text_rect = text_surf.get_rect(center=self.rect.center)
-        screen.blit(text_surf, text_rect)
-
-    def check_hover(self, mouse_pos):
-        self.hovered = self.rect.collidepoint(mouse_pos)
-
-    def check_click(self, mouse_pos):
-        if self.rect.collidepoint(mouse_pos):
-            self.callback()
-            return True
-        return False
-
 class GameVisualizer:
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        pygame.display.set_caption("Loop Game - Final Ver.")
+        pygame.display.set_caption("Loop Game - Refactored Ver.")
+        
+        # 字型設定
         try:
             self.font = pygame.font.SysFont("Microsoft JhengHei", 16)
             self.title_font = pygame.font.SysFont("Arial", 32, bold=True)
@@ -66,38 +43,70 @@ class GameVisualizer:
             self.font = pygame.font.SysFont("Arial", 16)
             self.title_font = pygame.font.SysFont("Arial", 32, bold=True)
         
-        self.engine = GameEngine()
-        self.log_messages = ["遊戲開始... 按 [Next Phase] 推進"]
+        # 1. 初始化 Logger
+        self.logger = GameLogger()
+        self.logger.log("遊戲初始化完成...")
+
+        # 2. 初始化引擎 (注入 Logger 的 log 方法)
+        self.engine = GameEngine(logger_callback=self.logger.log)
         
         self.selected_char = None
         self.action_mode = None 
         self.phase_idx = 0
         self.phases = ["日出", "早上", "中午", "黃昏", "夜晚"]
         
+        # 3. 按鈕配置 (新增安撫)
         panel_x = SCREEN_WIDTH - 280
         y_start = 120
         self.buttons = [
             Button(panel_x, y_start, 120, 40, "Next Phase", self.next_phase),
-            Button(panel_x, y_start + 60, 100, 35, "Swap (交換)", lambda: self.set_mode("SWAP")),
-            Button(panel_x + 110, y_start + 60, 100, 35, "Move (移動)", lambda: self.set_mode("MOVE")),
-            Button(panel_x, y_start + 100, 100, 35, "Ask (詢問)", self.action_ask),
-            Button(panel_x + 110, y_start + 100, 100, 35, "Mark (標記)", self.action_mark),
-            Button(panel_x, y_start + 140, 210, 35, "Solve (推理)", self.action_solve),
+            
+            Button(panel_x, y_start + 60, 100, 35, "Swap (1AP)", lambda: self.set_mode("SWAP")),
+            Button(panel_x + 110, y_start + 60, 100, 35, "Move (1AP)", lambda: self.set_mode("MOVE")),
+            
+            Button(panel_x, y_start + 100, 100, 35, "Ask (3AP)", self.action_ask),
+            Button(panel_x + 110, y_start + 100, 100, 35, "Mark (0AP)", self.action_mark),
+            
+            # [新增] 安撫按鈕
+            Button(panel_x, y_start + 140, 210, 35, "❤️ Soothe (1AP)", self.action_soothe),
+            
+            Button(panel_x, y_start + 185, 210, 35, "Solve (推理)", self.action_solve),
+            Button(panel_x, y_start + 230, 210, 30, "📜 歷史紀錄", self.toggle_history), 
         ]
 
         # 推理介面變數
         self.is_solving = False
         self.show_result = False
         self.result_message = ""
+        self.show_history = False 
+
+        # 動態建立可能身分列表
+        roles_set = {"一般人"}
+        if hasattr(self.engine, 'scripts'):
+            for script in self.engine.scripts:
+                for role_def in script['roles']:
+                    roles_set.add(role_def['name'])
+        self.possible_roles = sorted(list(roles_set), key=lambda x: 0 if x == "一般人" else 1)
+        
         self.guess_indices = {} 
         for char in self.engine.characters:
             self.guess_indices[char.id] = 0
 
+    # 封裝一個本地 log 方法，轉發給 self.logger
     def log(self, text):
-        print(text)
-        self.log_messages.insert(0, text)
-        if len(self.log_messages) > 18:
-            self.log_messages.pop()
+        self.logger.log(text)
+
+    # 輔助方法：嘗試消耗 AP
+    def try_consume_ap(self, cost):
+        if self.phases[self.phase_idx] != "中午":
+            self.log("⚠️ 非行動階段")
+            return False
+        if self.engine.ap >= cost:
+            self.engine.ap -= cost
+            return True
+        else:
+            self.log(f"⚠️ AP不足！需要 {cost} 點，剩餘 {self.engine.ap} 點")
+            return False
 
     def next_phase(self):
         if self.show_result or self.is_solving: return
@@ -107,13 +116,15 @@ class GameVisualizer:
         
         self.phase_idx = (self.phase_idx + 1) % len(self.phases)
         new_phase = self.phases[self.phase_idx]
-        self.log(f"--- 进入階段: {new_phase} ---")
+        
+        # 這裡不需要再手動 log "進入階段..."，因為 main.py 的 engine 方法裡已經有寫 log 了
+        # 但為了顯示分隔線，可以保留這一行，或者讓 engine 自己處理
+        # 這裡我們讓 engine 處理主要的 log，我們只負責呼叫 logic
         
         if new_phase == "日出": self.engine.phase_sunrise()
         elif new_phase == "早上": self.engine.phase_morning()
         elif new_phase == "中午": 
             self.engine.phase_noon()
-            self.log("請點擊角色並選擇行動...")
         elif new_phase == "黃昏": self.engine.phase_dusk()
         elif new_phase == "夜晚": self.engine.phase_night()
 
@@ -127,7 +138,63 @@ class GameVisualizer:
         self.action_mode = mode
         self.log(f"模式已切換為: {mode}，請選擇目標...")
 
+    # [新增] 安撫行動邏輯
+    def action_soothe(self):
+        if self.phases[self.phase_idx] != "中午" or not self.selected_char: return
+        char = self.selected_char
+        
+        # 條件 1: 不能在車站
+        if char.location == STATION_ID:
+            self.log("❌ 車站內太吵雜，無法安撫")
+            return
+        
+        # 條件 2: 精神是否已滿
+        if char.sanity >= char.max_sanity:
+            self.log(f"❌ {char.name} 的精神飽滿，不需要安撫")
+            return
+            
+        # 條件 3: 消耗 AP
+        if self.try_consume_ap(1):
+            char.sanity += 1
+            # 確保不超過上限 (這裡簡單假設 max_sanity 是 3 或者是他初始值)
+            # 嚴謹一點應該在 Character class 裡加一個 limit，目前先這樣
+            self.log(f"❤️ 安撫成功！ {char.name} 感到平靜 (精神+1)")
+
+    def action_ask(self):
+        # (保持原樣，省略...)
+        if self.phases[self.phase_idx] != "中午" or not self.selected_char: return
+        target = self.selected_char
+        if target.location == STATION_ID:
+            self.log("❌ 無法詢問車站內的人")
+            return
+        if target.sanity < target.max_sanity:
+            self.log("❌ 對方精神不穩定 (需滿血)")
+            return
+        if target.intrigue:
+            self.log("❌ 對方笑容詭異，拒絕回答！")
+            return
+        
+        if self.try_consume_ap(3):
+            target.known = True
+            self.log(f"🔍 [成功] {target.name} 的真身是: {target.role}")
+
+    def action_mark(self):
+        if not self.selected_char: return
+        if self.selected_char.guess_role is None:
+            self.selected_char.guess_role = "殺手?"
+            self.log(f"已標記 {self.selected_char.name}")
+        else:
+            self.selected_char.guess_role = None
+            self.log("已清除標記")
+
+    def action_solve(self):
+         self.is_solving = True 
+
+    def toggle_history(self):
+        self.show_history = not self.show_history
+
     def handle_map_click(self, pos):
+        # 1. 先判定點擊對象 (保持原本邏輯)
         clicked_char = None
         char_positions = self.get_all_char_positions()
         for char, char_pos in char_positions:
@@ -147,68 +214,71 @@ class GameVisualizer:
         if self.action_mode == "SWAP":
             if clicked_char and clicked_char != self.selected_char:
                 c1, c2 = self.selected_char, clicked_char
+                
+                # 規則2: 只能交換相鄰 (且不能在車站內交換，車站本身無相鄰概念或視為特殊)
+                # 判定相鄰: (a-b)%12 == 1 or (b-a)%12 == 1
+                is_adjacent = False
+                if c1.location != STATION_ID and c2.location != STATION_ID:
+                    diff = abs(c1.location - c2.location)
+                    if diff == 1 or diff == 11: # 11 是處理 0 和 11 的邊界
+                        is_adjacent = True
+                
                 if c1.location == STATION_ID or c2.location == STATION_ID:
-                    self.log("❌ 車站內無法交換")
+                    self.log("❌ 車站內無法進行交換")
+                elif not is_adjacent:
+                    self.log("❌ 只能交換「相鄰」的角色")
                 else:
-                    self.log(f"🔄 交換: {c1.name} <-> {c2.name}")
-                    c1.location, c2.location = c2.location, c1.location 
-                self.action_mode = None
-                self.selected_char = None
+                    # 檢查 AP
+                    if self.try_consume_ap(1):
+                        self.log(f"🔄 交換: {c1.name} <-> {c2.name} (耗1AP)")
+                        c1.location, c2.location = c2.location, c1.location 
+                        self.action_mode = None
+                        self.selected_char = None
+            return # 結束
+
+        # -------------------------------------------------
+        # MOVE 邏輯更新
+        # -------------------------------------------------
         elif self.action_mode == "MOVE":
             if clicked_loc is not None:
-                if self.selected_char.location == STATION_ID:
-                    self.log(f"🚑 救出: {self.selected_char.name} -> Loc{clicked_loc}")
-                    process_arrival(self.selected_char, clicked_loc)
-                else:
-                    self.log("❌ 只能移動車站內的角色")
-                self.action_mode = None
-                self.selected_char = None
+                target_loc = clicked_loc
+                char = self.selected_char
+                
+                # 規則1: 除非在車站，否則不能直接移動到空位
+                if char.location != STATION_ID:
+                    self.log("❌ 角色不在車站，無法直接移動 (請用交換)")
+                
+                # 車站救人邏輯
+                elif char.location == STATION_ID:
+                    # 檢查目標地點是否有人
+                    target_has_char = any(c.location == target_loc and not c.is_dead for c in self.engine.characters)
+                    
+                    if target_has_char:
+                        self.log("❌ 目標地點已有人")
+                    elif target_loc == STATION_ID:
+                        self.log("❌ 已經在車站了")
+                    else:
+                        if self.try_consume_ap(1):
+                            self.log(f"🚑 救出: {char.name} -> Loc{target_loc} (耗1AP)")
+                            process_arrival(char, target_loc)
+                            self.action_mode = None
+                            self.selected_char = None
+            return
+
         else:
             if clicked_char:
                 self.selected_char = clicked_char
-                self.log(f"已選中: {clicked_char.name}")
-
-    def action_ask(self):
-        if self.phases[self.phase_idx] != "中午" or not self.selected_char: return
-        target = self.selected_char
-        if target.intrigue:
-            self.log("❌ 對方笑容詭異，無法溝通！")
-        else:
-            target.known = True
-            self.log(f"🔍 確認身分: {target.name} 是 {target.role}")
-
-    def action_mark(self):
-        if not self.selected_char: return
-        if self.selected_char.guess_role is None:
-            self.selected_char.guess_role = "殺手?"
-            self.log(f"已標記 {self.selected_char.name}")
-        else:
-            self.selected_char.guess_role = None
-            self.log("已清除標記")
-
-    def action_solve(self):
-         self.is_solving = True 
-
-    def get_node_pos(self, location_id):
-        if location_id == STATION_ID: return (CENTER_X, CENTER_Y)
-        angle_deg = 270 - (location_id * 30)
-        angle_rad = math.radians(angle_deg)
-        return (CENTER_X + RADIUS * math.cos(angle_rad), CENTER_Y + RADIUS * math.sin(angle_rad))
-
-    def get_all_char_positions(self):
-        res = []
-        loc_counts = {} 
-        for char in self.engine.characters:
-            if char.is_dead: continue
-            base_pos = self.get_node_pos(char.location)
-            count = loc_counts.get(char.location, 0)
-            offset_x = (count % 3 - 1) * 18
-            offset_y = (count // 3) * 18
-            loc_counts[char.location] = count + 1
-            res.append((char, (base_pos[0] + offset_x, base_pos[1] + offset_y)))
-        return res
+                # [修改 1] 移除 Log，保持清靜
+                # self.log(f"已選中: {clicked_char.name}") 
+            elif clicked_loc is not None:
+                # 點擊地點不選中角色，不做事或顯示地點資訊(可選)
+                pass
+            else:
+                # [修改 2] 點擊地圖空白處，取消選取
+                self.selected_char = None
 
     def draw_detail_panel(self):
+        # (保持原樣，省略...)
         if not self.selected_char: return
         char = self.selected_char
         panel_rect = pygame.Rect(SCREEN_WIDTH - 280, 420, 260, 300)
@@ -371,6 +441,34 @@ class GameVisualizer:
             self.result_message = f"💀 失敗...\n只找出 {mystery_count}/{total_mystery} 個真相。\n"
         self.result_message += "\n".join(details)
 
+    def draw_history_panel(self):
+        # 修改為從 self.logger 讀取
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        overlay.set_alpha(240)
+        overlay.fill((10, 10, 10))
+        self.screen.blit(overlay, (0, 0))
+        
+        panel_rect = pygame.Rect(100, 50, SCREEN_WIDTH - 200, SCREEN_HEIGHT - 100)
+        pygame.draw.rect(self.screen, (50, 50, 60), panel_rect, border_radius=5)
+        pygame.draw.rect(self.screen, (150, 150, 150), panel_rect, 2, border_radius=5)
+        
+        title = self.title_font.render("=== 遊戲歷史紀錄 ===", True, (255, 255, 255))
+        self.screen.blit(title, (panel_rect.x + 20, panel_rect.y + 20))
+        
+        # 讀取完整歷史
+        full_history = self.logger.get_full_history()
+        max_lines = 22
+        lines_to_show = full_history[-max_lines:]
+        
+        y = panel_rect.y + 80
+        for line in lines_to_show:
+            txt = self.font.render(line, True, (200, 200, 200))
+            self.screen.blit(txt, (panel_rect.x + 30, y))
+            y += 25
+            
+        hint = self.font.render("點擊 [歷史紀錄] 按鈕或按 ESC 關閉", True, (255, 255, 0))
+        self.screen.blit(hint, (panel_rect.x + 30, panel_rect.y + panel_rect.height - 40))
+
     def draw_result_overlay(self):
         overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         overlay.fill((0, 0, 0))
@@ -383,6 +481,26 @@ class GameVisualizer:
             self.screen.blit(self.font.render(line, True, color), (100, y))
             y += 30
         self.screen.blit(self.font.render("按 [ESC] 退出", True, (255, 255, 0)), (100, y + 50))
+
+    # 輔助：取得各種座標 (保持原樣)
+    def get_node_pos(self, location_id):
+        if location_id == STATION_ID: return (CENTER_X, CENTER_Y)
+        angle_deg = 270 - (location_id * 30)
+        angle_rad = math.radians(angle_deg)
+        return (CENTER_X + RADIUS * math.cos(angle_rad), CENTER_Y + RADIUS * math.sin(angle_rad))
+
+    def get_all_char_positions(self):
+        res = []
+        loc_counts = {} 
+        for char in self.engine.characters:
+            if char.is_dead: continue
+            base_pos = self.get_node_pos(char.location)
+            count = loc_counts.get(char.location, 0)
+            offset_x = (count % 3 - 1) * 18
+            offset_y = (count // 3) * 18
+            loc_counts[char.location] = count + 1
+            res.append((char, (base_pos[0] + offset_x, base_pos[1] + offset_y)))
+        return res
 
     def draw(self):
         self.screen.fill(BG_COLOR)
@@ -412,29 +530,43 @@ class GameVisualizer:
              if char.guess_role: name_text += "?"
              self.screen.blit(self.font.render(name_text, True, (255, 255, 255)), (pos[0]-6, pos[1]-25))
 
+        # === UI 面板 ===
         panel_rect = pygame.Rect(SCREEN_WIDTH - 300, 0, 300, SCREEN_HEIGHT)
         pygame.draw.rect(self.screen, (30, 30, 40), panel_rect)
         pygame.draw.line(self.screen, (100, 100, 100), (SCREEN_WIDTH - 300, 0), (SCREEN_WIDTH - 300, SCREEN_HEIGHT))
 
-        title = self.title_font.render(f"Day {self.engine.day}", True, HIGHLIGHT_COLOR)
+        # [修改] 日期顯示：第N天 / 共M天
+        day_str = f"Day {self.engine.day} / {self.engine.max_days}"
+        title = self.title_font.render(day_str, True, HIGHLIGHT_COLOR)
         phase_txt = self.font.render(f"階段: {self.phases[self.phase_idx]}", True, TEXT_COLOR)
         self.screen.blit(title, (panel_rect.x + 20, 20))
         self.screen.blit(phase_txt, (panel_rect.x + 20, 60))
+        
+        # 顯示 AP
+        ap_txt = self.title_font.render(f"AP: {self.engine.ap} / 5", True, AP_COLOR)
+        self.screen.blit(ap_txt, (panel_rect.x + 20, 90))
 
         if self.action_mode:
-            self.screen.blit(self.font.render(f"正在: {self.action_mode}...", True, (255, 100, 100)), (panel_rect.x + 20, 90))
+            self.screen.blit(self.font.render(f"正在: {self.action_mode}...", True, (255, 100, 100)), (panel_rect.x + 20, 120)) # 稍微往下移
 
+        # 畫按鈕
         mouse_pos = pygame.mouse.get_pos()
         for btn in self.buttons:
             btn.check_hover(mouse_pos)
             btn.draw(self.screen, self.font)
 
-        log_y = 380
-        for msg in self.log_messages[:5]:
-            self.screen.blit(self.font.render(msg, True, (150, 150, 150)), (panel_rect.x + 10, log_y))
+        # 畫 Log (從 logger 讀取)
+        log_y = 400
+        recent_logs = self.logger.get_recent()[:5]
+        for msg in recent_logs:
+            # 簡單截斷避免太長
+            if len(msg) > 18: msg_display = msg[:18] + "..."
+            else: msg_display = msg
+            self.screen.blit(self.font.render(msg_display, True, (150, 150, 150)), (panel_rect.x + 10, log_y))
             log_y += 20
 
         self.draw_detail_panel()
+        if self.show_history: self.draw_history_panel()
 
     def run(self):
         clock = pygame.time.Clock()
@@ -451,7 +583,10 @@ class GameVisualizer:
                         if event.button == 1:
                             self.handle_solve_click(event.pos)
                 else: 
-                    if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                        if self.show_history: self.show_history = False
+                    
+                    elif event.type == pygame.MOUSEBUTTONDOWN:
                         if event.button == 1:
                             clicked_btn = False
                             for btn in self.buttons:
@@ -460,6 +595,12 @@ class GameVisualizer:
                                     break
                             if not clicked_btn:
                                 self.handle_map_click(event.pos)
+                        elif event.button == 3: # 右鍵取消
+                            if self.action_mode:
+                                self.log("🚫 已取消行動")
+                                self.action_mode = None
+                            elif self.selected_char:
+                                self.selected_char = None
 
             if self.show_result:
                 self.draw_result_overlay()
@@ -473,6 +614,6 @@ class GameVisualizer:
         pygame.quit()
         sys.exit()
 
-if __name__ == "__LOOP__":
+if __name__ == "__main__":
     game = GameVisualizer()
     game.run()
