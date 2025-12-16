@@ -1,45 +1,59 @@
 {
-  "Main": [
-    {
-      "name": "活人獻祭",
-      "roles": [
-        {
-          "name": "關鍵人物",
-          "count": 1,
-          "gender": "F"
-        },
-        {
-          "name": "邪教徒",
-          "count": 1,
-          "gender": null
-        }
-      ]
-    },
-    {
-      "name": "暗夜殺機",
-      "roles": [
-        {
-          "name": "殺手",
-          "count": 1,
-          "gender": null
-        }
-      ]
+    "Main": [
+        { "id": "111", "name": "活人獻祭", "rule_tag": "human_sacrifice", "roles": [{"name": "關鍵人物", "count": 1, "gender": "F"}, {"name": "邪教徒", "count": 1, "gender": null}] },
+        { "id": "112", "name": "秘密神壇", "rule_tag": "secret_altar", "roles": [{"name": "黑幕", "count": 1, "gender": null}, {"name": "邪教徒", "count": 1, "gender": null}] },
+        { "id": "113", "name": "惡德祭典", "rule_tag": "evil_festival", "roles": [{"name": "關鍵人物", "count": 1, "gender": "F"}, {"name": "黑幕", "count": 1, "gender": null}] },
+        
+        { "id": "211", "name": "血海深仇", "rule_tag": "graves_limit_strict", "roles": [{"name": "偵探", "count": 1, "gender": null}, {"name": "復仇者", "count": 1, "gender": null}] },
+        { "id": "212", "name": "大樓爆破", "rule_tag": "no_empty_zone", "roles": [{"name": "恐怖份子", "count": 1, "gender": null}, {"name": "復仇者", "count": 1, "gender": null}] },
+        { "id": "213", "name": "東方快車", "rule_tag": "station_limit", "roles": [{"name": "偵探", "count": 1, "gender": null}, {"name": "恐怖份子", "count": 1, "gender": null}] },
+
+        { "id": "311", "name": "生化洩漏", "rule_tag": "biohazard", "roles": [{"name": "帶原者", "count": 1, "gender": null}, {"name": "防役官", "count": 1, "gender": null}] },
+        { "id": "312", "name": "AI 覺醒", "rule_tag": "ai_awakening", "roles": [{"name": "仿生人", "count": 1, "gender": null}, {"name": "駭客", "count": 1, "gender": null}] },
+        { "id": "313", "name": "反應爐臨界", "rule_tag": "reactor_meltdown", "roles": [{"name": "工程師", "count": 1, "gender": null}, {"name": "恐怖份子", "count": 1, "gender": null}] },
+
+        { "id": "411", "name": "吸血鬼", "rule_tag": "vampire_hunt", "roles": [{"name": "吸血鬼", "count": 1, "gender": null}, {"name": "獵人", "count": 1, "gender": null}] },
+        { "id": "412", "name": "繼承之戰", "rule_tag": "succession_war", "roles": [{"name": "富豪", "count": 1, "gender": null}, {"name": "私生子", "count": 1, "gender": null}] },
+        { "id": "413", "name": "幽靈船", "rule_tag": "ghost_ship", "roles": [{"name": "靈媒", "count": 1, "gender": null}, {"name": "連環殺手", "count": 1, "gender": null}] }
+    ],
+    "Sub": [
+        { "id": "121", "name": "風聲鶴唳(支線)", "rule_tag": "default", "roles": [{"name": "煽動者", "count": 2, "gender": null}] },
+        { "id": "122", "name": "譫妄病毒", "rule_tag": "virus_station", "roles": [{"name": "煽動者", "count": 1, "gender": null}, {"name": "溫和的戀人", "count": 1, "gender": null}, {"name": "瘋狂的戀人", "count": 1, "gender": null}] },
+        { "id": "123", "name": "前世記憶", "rule_tag": "past_memory", "roles": [{"name": "超憶者", "count": 1, "gender": null}] },
+
+        { "id": "221", "name": "汪洋殺意", "rule_tag": "insane_intrigue", "roles": [{"name": "煽動者", "count": 1, "gender": null}, {"name": "可靠的夥伴", "count": 1, "gender": null}] },
+        { "id": "222", "name": "監禁", "rule_tag": "high_cost_move", "roles": [{"name": "煽動者", "count": 1, "gender": null}, {"name": "線民", "count": 1, "gender": null}] },
+        { "id": "223", "name": "情報商", "rule_tag": "cheap_ask", "roles": [{"name": "情報販子", "count": 1, "gender": null}] },
+
+        { "id": "321", "name": "全域封鎖", "rule_tag": "lockdown", "roles": [{"name": "警衛", "count": 1, "gender": null}] },
+        { "id": "322", "name": "認知崩壞", "rule_tag": "cognitive_collapse", "roles": [{"name": "瘋狂科學家", "count": 1, "gender": null}] },
+        { "id": "323", "name": "緊急廣播", "rule_tag": "emergency_broadcast", "roles": [{"name": "間諜", "count": 1, "gender": null}] },
+
+        { "id": "421", "name": "濃霧", "rule_tag": "thick_fog", "roles": [{"name": "領航員", "count": 1, "gender": null}] },
+        { "id": "422", "name": "假面舞會", "rule_tag": "masquerade", "roles": [{"name": "貴族", "count": 1, "gender": null}] },
+        { "id": "423", "name": "暴風雨", "rule_tag": "stormy_seas", "roles": [{"name": "船長", "count": 1, "gender": null}] }
+    ],
+    "Foreshadow": [
+        { "id": "131", "name": "風聲鶴唳", "panic_event": { "name": "惡意造謠", "loc": 0, "slot": 1, "effect": "spread_insanity" }, "intrigue_event": { "name": "無差別攻擊", "loc": 2, "slot": 1, "effect": "massacre" } },
+        { "id": "132", "name": "灰色青春", "panic_event": { "name": "集體霸凌", "loc": 3, "slot": 1, "effect": "spread_insanity" }, "intrigue_event": { "name": "連環殺手", "loc": 1, "slot": 1, "effect": "massacre" } },
+        { "id": "133", "name": "大暴動", "panic_event": { "name": "封鎖線衝突", "loc": 4, "slot": 1, "effect": "riot" }, "intrigue_event": { "name": "毒氣攻擊", "loc": 4, "slot": 1, "effect": "massacre" } },
+
+        { "id": "231", "name": "死前留言", "panic_event": { "name": "醫療疏失", "loc": 1, "slot": 1, "effect": "suicide" }, "intrigue_event": { "name": "連環爆炸", "loc": 3, "slot": 1, "effect": "defeat" } },
+        { "id": "232", "name": "密室殺人", "panic_event": { "name": "都市傳說", "loc": 2, "slot": 1, "effect": "spread_insanity" }, "intrigue_event": { "name": "詛咒儀式", "loc": 0, "slot": 1, "effect": "defeat" } },
+        { "id": "233", "name": "孤島", "panic_event": { "name": "恐慌蔓延", "loc": 4, "slot": 1, "effect": "spread_insanity" }, "intrigue_event": { "name": "炸毀車站", "loc": 4, "slot": 1, "effect": "defeat" } },
+
+        { "id": "331", "name": "實驗體暴走", "panic_event": { "name": "神經毒素", "loc": 1, "slot": 1, "effect": "toxic_gas" }, "intrigue_event": { "name": "啟動自毀", "loc": 2, "slot": 1, "effect": "defeat" } },
+        { "id": "332", "name": "系統錯誤", "panic_event": { "name": "噪音干擾", "loc": 4, "slot": 1, "effect": "random_teleport" }, "intrigue_event": { "name": "封閉閘門", "loc": 0, "slot": 1, "effect": "massacre" } },
+        { "id": "333", "name": "能源外洩", "panic_event": { "name": "輻射外洩", "loc": 2, "slot": 1, "effect": "spread_insanity" }, "intrigue_event": { "name": "高壓電擊", "loc": 1, "slot": 1, "effect": "massacre" } },
+
+        { "id": "431", "name": "血色瑪麗", "panic_event": { "name": "歇斯底里", "loc": 3, "slot": 1, "effect": "spread_insanity" }, "intrigue_event": { "name": "毒酒", "loc": 0, "slot": 1, "effect": "massacre" } },
+        { "id": "432", "name": "消失的救生艇", "panic_event": { "name": "推擠踩踏", "loc": 4, "slot": 1, "effect": "kill_one" }, "intrigue_event": { "name": "炸毀船底", "loc": 4, "slot": 1, "effect": "defeat" } },
+        { "id": "433", "name": "深夜的腳步聲", "panic_event": { "name": "疑神疑鬼", "loc": 2, "slot": 1, "effect": "spread_insanity" }, "intrigue_event": { "name": "暗殺要員", "loc": 3, "slot": 1, "effect": "massacre" } }
+    ],
+    "Location_Names": {
+        "1XX": ["神社", "醫院", "都市", "學校", "車站"],
+        "2XX": ["工廠", "購物中心", "高樓", "住宅區", "中央車站"],
+        "3XX": ["實驗室", "隔離區", "反應爐", "辦公室", "中央控制室"],
+        "4XX": ["甲板", "醫務室", "宴會廳", "貴賓室", "駕駛台"]
     }
-  ],
-  "Sub": [
-    {
-      "name": "疑神疑鬼",
-      "roles": [
-        {
-          "name": "散播者",
-          "count": 1,
-          "gender": null
-        }
-      ]
-    },
-    {
-      "name": "平靜無波",
-      "roles": []
-    }
-  ]
 }
