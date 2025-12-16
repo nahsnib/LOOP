@@ -25,16 +25,18 @@ class GameEngine:
         
         self.log(f"📋 劇本構築完成 (Rules: {self.main_rule} / {self.sub_rule})")
         
+        # --- 劇本初始化處理 ---
+        
         # 處理 "假面舞會" (性別屏蔽)
         if self.sub_rule == "masquerade":
             self.log("   🎭 假面舞會開始，所有人的性別變得模糊...")
             for c in self.characters:
-                c.gender = None # 移除性別特徵
+                c.gender = None 
 
         # 處理 "仿生人" (給予高精神)
         for c in self.characters:
             if c.role == "仿生人":
-                c.sanity = 5 # 強韌的精神
+                c.sanity = 5 
                 
         self._assign_random_intrigue()
 
@@ -57,7 +59,7 @@ class GameEngine:
         """執行伏筆效果"""
         chars_in_zone = self._get_chars_in_loc(loc_id)
         
-        # 擴充效果庫
+        # --- 擴充效果庫 ---
         if effect_type in ["spread_insanity", "toxic_gas"]: # 毒氣/恐慌
             msg = "陷入恐慌 (全員精神-1)" if effect_type == "spread_insanity" else "瀰漫神經毒素 (精神-2)"
             dmg = 1 if effect_type == "spread_insanity" else 2
@@ -69,12 +71,16 @@ class GameEngine:
             # [劇本3] 認知崩壞: 恐慌擴散至鄰區
             if self.sub_rule == "cognitive_collapse":
                 self.log("   🧠 [連鎖] 認知崩壞導致恐慌擴散至相鄰區域！")
-                neighbors = [(loc_id - 1)%4, (loc_id + 1)%4]
-                if loc_id == STATION_ID: neighbors = [0,1,2,3] # 車站擴散至全城
-                for n_id in neighbors:
+                # 假設 Loc 0, 1, 2, 3 兩兩相鄰，Loc 4 (車站) 連接到所有 0, 1, 2, 3
+                neighbors = []
+                if loc_id == STATION_ID: neighbors = [0, 1, 2, 3] # 車站擴散至全城
+                elif loc_id in [0, 1, 2, 3]: neighbors = [(loc_id - 1)%4, (loc_id + 1)%4, STATION_ID] # 一般區域擴散至兩邊及車站
+                
+                for n_id in set(neighbors):
                     for nc in self._get_chars_in_loc(n_id):
-                        nc.sanity -= 1
-                        check_sanity_status(nc, self.log_func)
+                        if nc not in chars_in_zone: # 避免對同一區域重複扣除
+                            nc.sanity -= 1
+                            check_sanity_status(nc, self.log_func)
 
         elif effect_type == "riot":
             self.log(f"   🔥 [效果] Loc{loc_id} 發生暴動 (驅離)")
@@ -117,7 +123,7 @@ class GameEngine:
             if mad_chars:
                 event_data = self.foreshadow_data['panic_event']
                 loc_id = event_data['loc']
-                victim_name = mad_chars[0].name # 選擇第一個崩潰者作為事件中心
+                victim_name = mad_chars[0].name 
                 
                 self.log(f"\n📢 【恐慌伏筆】觸發：{event_data['name']}")
                 self._apply_event_effect(event_data['effect'], loc_id, victim_name)
@@ -125,7 +131,8 @@ class GameEngine:
         elif phase == 'night':
             # 陰謀事件：檢查黑幕/邪教徒/陰謀者
             intrigue_chars = [c for c in self.characters if c.intrigue > 0 and not c.is_dead]
-            mastermind_exists = any(c.role in ["黑幕", "邪教徒"] for c in intrigue_chars)
+            # 僅在有特定身份的陰謀者存活時觸發
+            mastermind_exists = any(c.role in ["黑幕", "邪教徒", "恐怖份子", "帶原者", "吸血鬼", "私生子"] for c in intrigue_chars)
             
             if intrigue_chars and mastermind_exists:
                 event_data = self.foreshadow_data['intrigue_event']
@@ -205,7 +212,7 @@ class GameEngine:
         
         # 大樓爆破 (劇本2)
         if self.main_rule == "no_empty_zone":
-            for i in range(4):
+            for i in range(4): # 檢查 Loc 0, 1, 2, 3
                 if len(self._get_chars_in_loc(i)) == 0:
                     self.log(f"💀 【敗北】區域 {i} 無人 (大樓爆破)。"); self.is_game_over = True; return
 
@@ -318,4 +325,4 @@ class GameEngine:
             if self.is_game_over:
                 self.ap = -1
             else:
-                self.ap = 5 # 重設 AP 進入下一天
+                self.ap = 5
