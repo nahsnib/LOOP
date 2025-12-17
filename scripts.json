@@ -56,4 +56,17 @@
         "3XX": ["實驗室", "隔離區", "反應爐", "辦公室", "中央控制室"],
         "4XX": ["甲板", "醫務室", "宴會廳", "貴賓室", "駕駛台"]
     }
+    {
+  "Role_Data": {
+    "殺手":     {"trigger": "night", "target": "random_other_in_loc", "effect": "kill"},
+    "黑幕":     {"trigger": "dusk",  "target": "random_other_in_loc", "effect": "add_intrigue"},
+    "煽動者":   {"trigger": "dusk",  "target": "random_other_in_loc", "effect": "sanity_damage", "value": 1},
+    "帶原者":   {"trigger": "dusk",  "target": "all_others_in_loc",   "effect": "sanity_damage", "value": 1},
+    "吸血鬼":   {"trigger": "night", "target": "vampire_logic",       "effect": "kill"},
+    "邪教徒":   {"trigger": "sunrise", "target": "role_location", "target_role": "關鍵人物", "effect": "teleport"},
+    "復仇者":   {"trigger": "dusk",    "target": "role_location", "target_role": "關鍵人物", "effect": "teleport"},
+    "私生子":   {"trigger": "night", "target": "random_other_in_loc", "effect": "kill"}
+  }
 }
+}
+
