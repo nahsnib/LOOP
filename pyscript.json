@@ -1,0 +1,14 @@
+{
+    "name": "Underground Train Web",
+    "description": "A multi-scenario strategy game.",
+    "files": [
+        "./main.py",
+        "./models.py",
+        "./settings.py",
+        "./mechanics.py",
+        "./abilities.py",
+        "./scenario_gen.py",
+        "./actions.py",
+        "./scripts.json"
+    ]
+}
