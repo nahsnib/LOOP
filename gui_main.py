@@ -2,17 +2,16 @@
 import tkinter as tk
 from main import GameEngine
 from settings import STATION_ID, SCRIPTS_DB # 載入修正後的 settings.py
+from actions import ActionManager
 
 class GameGUI(tk.Frame):
     def __init__(self, master=None):
-        super().__init__(master)
-        self.master = master
-        self.master.title("地下列車：多劇本測試版")
-        self.pack()
-        
-        # 初始化遊戲引擎
+        # ... 初始化 ...
         self.engine = GameEngine(logger_callback=self.log_message)
-        
+        # 關鍵：初始化控制器
+        self.actions = ActionManager(self.engine) 
+        # ... 
+            
         # 載入動態地點名稱
         self.location_names = self._load_location_names()
         
@@ -20,6 +19,8 @@ class GameGUI(tk.Frame):
         self.update_gui()
         self.log_message("\n--- 遊戲開始 ---")
         self.log_message(f"主劇本: {self.engine.scripts[0]['name']} | 支線: {self.engine.scripts[1]['name']}")
+
+        
         
     def _load_location_names(self):
         """根據主劇本 ID 載入對應的地點名稱"""
@@ -70,83 +71,30 @@ class GameGUI(tk.Frame):
         self.log_text.insert(tk.END, message + "\n")
         self.log_text.see(tk.END)
 
-    def action_move(self, target_loc_id):
-        """處理移動動作並扣除 AP"""
-        if self.engine.ap <= 0 or self.current_char.is_dead:
-            self.log_message("🚫 行動點不足或已死亡，無法移動。")
-            return
-        
-        # 計算移動成本 (預設為 1 AP)
-        cost = 1
-        
-        # [支線] 全域封鎖: 進入隔離區 (Loc 1) 需要額外 1 AP
-        if self.engine.sub_rule == "lockdown" and target_loc_id == 1:
-            cost += 1
-            self.log_message("🚨 [封鎖] 進入隔離區，額外消耗 1 AP。")
-            
-        if self.engine.ap < cost:
-            self.log_message("🚫 行動點不足以支付此移動成本。")
-            return
 
-        # 執行移動
-        self.current_char.location = target_loc_id
-        self.engine.ap -= cost
-        self.log_message(f"➡️ {self.current_char.name} 移動至 Loc {target_loc_id} ({self.location_names[target_loc_id]})，剩餘 AP: {self.engine.ap}")
+    def action_move(self, loc_id):
+        # UI 只負責傳遞指令給 Controller
+        success, message = self.actions.move(self.engine.characters[0], loc_id)
+        self.log_message(message)
         self.update_gui()
-        
+        # 如果 AP 用完，自動提示可以點選結束回合 (或者自動結束)
         if self.engine.ap == 0:
-            self.next_phase()
+            self.log_message("💡 AP 已耗盡，請結束回合。")
 
     def action_ask(self):
-        """處理詢問動作 (查詢同地點人物信息)"""
-        if self.engine.ap <= 0 or self.current_char.is_dead:
-            self.log_message("🚫 行動點不足或已死亡，無法詢問。")
-            return
-
-        self.engine.ap -= 1
-        
-        loc_chars = [c for c in self.engine.characters if c.location == self.current_char.location and c != self.current_char and not c.is_dead]
-        
-        if loc_chars:
-            target = random.choice(loc_chars)
-            info = f"🕵️ 詢問 {target.name} (身份:{target.role}, 精神:{target.sanity}, 陰謀:{target.intrigue})。"
-            self.log_message(info)
-        else:
-            self.log_message("❓ 周圍沒有可詢問的對象。")
-            
-        self.log_message(f"剩餘 AP: {self.engine.ap}")
+        success, message = self.actions.ask(self.engine.characters[0])
+        self.log_message(message)
         self.update_gui()
-        
-        if self.engine.ap == 0:
-            self.next_phase()
 
     def next_phase(self):
-        """推進遊戲階段 (黃昏 -> 夜晚 -> 日出 -> 早上)"""
-        if self.engine.ap > 0:
-            self.log_message("❗ 還有 AP 點數，請先用完或確認結束。")
-            return
-            
-        if self.engine.is_game_over:
-            self.log_message("遊戲已經結束。")
-            return
-
-        self.log_message("\n--- 推進到黃昏/夜晚階段 ---")
-        self.engine.phase_dusk()
-        if self.engine.is_game_over: self.update_gui(); return
-        
-        self.engine.phase_night()
-        
-        if self.engine.is_game_over:
-            self.log_message(f"\n======== 遊戲結束 ({'勝利' if self.engine.day >= self.engine.max_days else '敗北'}) ========")
-            self.update_gui()
-            return
-            
-        self.log_message(f"\n=== 進入 Day {self.engine.day} ===")
-        self.engine.phase_sunrise()
-        self.engine.phase_morning()
-        
-        self.engine.ap = 5 # 重置 AP
+        success, message = self.actions.end_turn()
+        self.log_message(message)
         self.update_gui()
+
+        super().__init__(master)
+        self.master = master
+        self.master.title("地下列車：多劇本測試版")
+        self.pack()
 
 
     def update_gui(self):
@@ -223,3 +171,4 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = GameGUI(master=root)
     root.mainloop()
+
