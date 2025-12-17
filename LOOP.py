@@ -37,8 +37,14 @@ class GameEngine:
         for c in self.characters:
             if c.role == "仿生人":
                 c.sanity = 5 
-                
+        
         self._assign_random_intrigue()
+        self.ability_engine = AbilityEngine(SCRIPTS_DB.get("Role_Data", {}))
+    def _execute_role_abilities(self, phase):
+        """執行特定階段的角色能力 (現在統整為一個入口)"""
+        self.log(f"   👤 處理 {phase} 階段角色能力...")
+        for c in self.characters:
+            self.ability_engine.run(c, self.characters, phase, self.log)
 
     def log(self, message):
         """通用日誌輸出"""
@@ -326,3 +332,4 @@ class GameEngine:
                 self.ap = -1
             else:
                 self.ap = 5
+
