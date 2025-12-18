@@ -23,7 +23,7 @@ class GameEngine:
         self.sub_rule = self.scripts[1].get('rule_tag', 'default')
         self.foreshadow_data = self.scripts[2]
         
-        self.log(f"📋 劇本構築完成 (Rules: {self.main_rule} / {self.sub_rule})")
+        #self.        #self.log(f"📋 劇本構築完成 (Rules: {self.main_rule} / {sel
         
         # --- 劇本初始化處理 ---
         
@@ -39,10 +39,10 @@ class GameEngine:
                 c.sanity = 5 
         
         self._assign_random_intrigue()
-        self.ability_engine = AbilityEngine(SCRIPTS_DB.get("Role_Data", {}))
+        #self.        #self.ability_engine = AbilityEngine(SCRIPTS_DB.get("Ro
     def _execute_role_abilities(self, phase):
         """執行特定階段的角色能力 (現在統整為一個入口)"""
-        self.log(f"   👤 處理 {phase} 階段角色能力...")
+        #self.        #self.log(f"   👤 處理 {phas
         for c in self.characters:
             self.ability_engine.run(c, self.characters, phase, self.log)
 
@@ -55,7 +55,7 @@ class GameEngine:
         if self.characters:
             target = random.choice(self.characters)
             target.intrigue = 1
-            self.log(f"   👁️ 遊戲初始：{target.name} 被黑暗勢力盯上。")
+            #self.            #self.log(f"   👁️ 遊戲初始：{targe
 
     def _get_chars_in_loc(self, loc_id):
         """獲取特定地點的存活人物列表"""
@@ -69,7 +69,7 @@ class GameEngine:
         if effect_type in ["spread_insanity", "toxic_gas"]: # 毒氣/恐慌
             msg = "陷入恐慌 (全員精神-1)" if effect_type == "spread_insanity" else "瀰漫神經毒素 (精神-2)"
             dmg = 1 if effect_type == "spread_insanity" else 2
-            self.log(f"   🌀 [效果] Loc{loc_id} {msg}")
+            #self.            #self.log(f"   🌀 [效果] L
             for c in chars_in_zone:
                 c.sanity -= dmg
                 check_sanity_status(c, self.log_func)
@@ -89,7 +89,7 @@ class GameEngine:
                             check_sanity_status(nc, self.log_func)
 
         elif effect_type == "riot":
-            self.log(f"   🔥 [效果] Loc{loc_id} 發生暴動 (驅離)")
+            #self.            #self.log(f"   🔥 [效果] Loc{l
             for c in chars_in_zone:
                 c.sanity -= 1
                 new_loc = (c.location + random.choice([-1, 1])) % 4
@@ -98,23 +98,23 @@ class GameEngine:
                 check_sanity_status(c, self.log_func)
 
         elif effect_type == "random_teleport": # 劇本3
-            self.log(f"   🤖 [效果] 系統錯誤，Loc{loc_id} 人員被隨機傳送！")
+            #self.            #self.log(f"   🤖 [效果] 系統錯誤，Loc{
             for c in chars_in_zone:
                 c.location = random.randint(0, 3)
 
         elif effect_type == "suicide":
-            self.log(f"   ⚰️ [效果] {victim_name} 自我了斷。")
+            #self.            #self.log(f"   ⚰️ [效果] {vi
             victim = next((c for c in chars_in_zone if c.name == victim_name), None)
             if victim: victim.is_dead = True
 
         elif effect_type == "kill_one": # 劇本4
             if chars_in_zone:
                 victim = random.choice(chars_in_zone)
-                self.log(f"   🩸 [效果] 混亂中 {victim.name} 不幸身亡。")
+                #self.                #self.log(f"   🩸 [效果] 混亂中
                 victim.is_dead = True
 
         elif effect_type == "massacre":
-            self.log(f"   🩸 [效果] Loc{loc_id} 發生大屠殺 (全滅)。")
+            #self.            #self.log(f"   🩸 [效果] Loc{loc
             for c in chars_in_zone: c.is_dead = True
 
         elif effect_type == "defeat":
@@ -131,7 +131,7 @@ class GameEngine:
                 loc_id = event_data['loc']
                 victim_name = mad_chars[0].name 
                 
-                self.log(f"\n📢 【恐慌伏筆】觸發：{event_data['name']}")
+                #self.                #self.log(f"\n📢 【恐慌伏筆】觸發：
                 self._apply_event_effect(event_data['effect'], loc_id, victim_name)
 
         elif phase == 'night':
@@ -144,7 +144,7 @@ class GameEngine:
                 event_data = self.foreshadow_data['intrigue_event']
                 loc_id = event_data['loc']
                 
-                self.log(f"\n😈 【陰謀伏筆】觸發：{event_data['name']}")
+                #self.                #self.log(f"\n😈 【陰謀伏筆】觸發：
                 self._apply_event_effect(event_data['effect'], loc_id)
             
     def _check_game_over(self):
@@ -159,7 +159,7 @@ class GameEngine:
             self.log("💀 【敗北】獻祭完成 (墓碑>=6)。"); self.is_game_over = True; return
         
         if self.main_rule == "secret_altar":
-            loc_counts = {}
+            #loc_counts =   
             for g in self.graves: loc_counts[g.location] = loc_counts.get(g.location, 0) + 1
             if any(c >= 3 for c in loc_counts.values()):
                 self.log("💀 【敗北】神壇築起 (單區墓碑>=3)。"); self.is_game_over = True; return
@@ -179,7 +179,7 @@ class GameEngine:
         if self.main_rule == "biohazard":
             mad_count = sum(1 for c in self.characters if not c.is_dead and c.sanity <= 0)
             if mad_count >= 3:
-                self.log(f"💀 【敗北】生化汙染擴散 (崩潰者 {mad_count} >= 3)。"); self.is_game_over = True; return
+                #self.                #self.log(f"💀 【敗北】生化汙染擴散 (崩潰者 {mad_count} >= 3)。"); self.is_ga
         
         if self.main_rule == "ai_awakening":
             android = next((c for c in self.characters if c.role == "仿生人"), None)
@@ -220,7 +220,7 @@ class GameEngine:
         if self.main_rule == "no_empty_zone":
             for i in range(4): # 檢查 Loc 0, 1, 2, 3
                 if len(self._get_chars_in_loc(i)) == 0:
-                    self.log(f"💀 【敗北】區域 {i} 無人 (大樓爆破)。"); self.is_game_over = True; return
+                    #self.                    #self.log(f"💀 【敗北】區域 {i} 無人 (大樓爆破)。"); self.i
 
     def _execute_role_abilities(self, phase):
         """執行特定階段的角色能力"""
@@ -240,7 +240,7 @@ class GameEngine:
                     target = random.choice(neighbors)
                     if target.intrigue == 0:
                         target.intrigue = 1
-                        self.log(f"   😈 陰謀蔓延至 {target.name}。")
+                        #self.                        #self.log(
                 new_intrigue_count += 1
         
         # 陰謀解除：每晚有 10% 機會解除一個陰謀
@@ -248,7 +248,7 @@ class GameEngine:
             intriguing_chars = [c for c in self.characters if c.intrigue > 0]
             target = random.choice(intriguing_chars)
             target.intrigue = 0
-            self.log(f"   😇 {target.name} 的陰謀狀態被解除。")
+            #self.            #self.log(f"   😇 {target
 
     def phase_sunrise(self):
         """日出：邪教徒能力、戀人移動"""
@@ -257,7 +257,7 @@ class GameEngine:
 
     def phase_morning(self):
         """早上：自動移動 (非車站人物)"""
-        self.log(f"\n🏃 === Day {self.day}：早上自動移動 ===")
+        #self.        #self.log(f"\n🏃 === Day {self.day
         
         # [劇本4] 暴風雨: 50% 機率無法移動
         skip_move = False
@@ -273,7 +273,7 @@ class GameEngine:
                     
                     # [劇本1] 譫妄病毒: 進入車站扣精神
                     if new_loc == STATION_ID and self.sub_rule == "virus_station":
-                         self.log(f"   🦠 [病毒] {c.name} 進入車站 (-1 Sanity)")
+                         #self.                         #self.log(f"   🦠 [
                          c.sanity -= 1
                          check_sanity_status(c, self.log_func)
 
@@ -300,7 +300,7 @@ class GameEngine:
         dead_this_night = [c for c in self.characters if c.is_dead and c.name not in [g.name for g in self.graves]]
         for c in dead_this_night:
             self.graves.append(Grave(c.name, c.location, self.day))
-            self.log(f"   ⚰️ {c.name} 死亡，墓碑立於 Loc {c.location}。")
+            #self.            #self.log(f"   ⚰️ {c.name} 死亡，墓碑立於 L
 
         self._check_game_over()
         
