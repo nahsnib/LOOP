@@ -8,23 +8,31 @@
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <style>
         body { font-family: sans-serif; background: #1a1a1a; color: #eee; padding: 20px; }
+        /* 修正點：加上 # 號，對應 id="log" */
         #log { 
-            background: #000; height: 250px; overflow-y: scroll; 
-            padding: 10px; border: 1px solid #444; margin-top: 10px;
-            font-family: monospace; font-size: 14px; line-height: 1.5;
+            background: #000; 
+            height: 200px; 
+            overflow-y: scroll; 
+            padding: 10px; 
+            border: 1px solid #444; 
+            margin-top: 10px;
+            font-family: monospace;
         }
-        .map { display: flex; justify-content: space-around; margin: 20px 0; flex-wrap: wrap; }
-        .loc { border: 2px solid #555; padding: 10px; border-radius: 8px; text-align: center; min-width: 80px; margin: 5px; }
-        button { padding: 10px 15px; margin: 5px; cursor: pointer; background: #444; color: white; border: none; border-radius: 4px; }
-        button:active { background: #222; }
-        .container { margin: 0 auto; max-width: 600px; text-align: center; }
-        .status { font-weight: bold; color: #ffcc00; margin-bottom: 10px; }
+        .map { display: flex; justify-content: space-around; margin: 20px 0; }
+        .loc { border: 2px solid #555; padding: 10px; border-radius: 8px; text-align: center; min-width: 80px; }
+        button { padding: 10px; margin: 5px; cursor: pointer; background: #444; color: white; border: none; border-radius: 4px; }
+        button:hover { background: #666; }
+        .container { 
+            margin: 50px auto 40px auto; 
+            width: 600px; 
+            text-align: center; 
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>地下列車：網頁原型</h1>
-        <div id="status-bar" class="status">載入中...</div>
+        <div id="status-bar">正在載入遊戲引擎...</div>
 
         <div class="map">
             <div id="loc-0" class="loc">神社 (0)</div>
@@ -40,106 +48,61 @@
             <button py-click="move_to(2)">前往 2</button>
             <button py-click="move_to(3)">前往 3</button>
             <button py-click="move_to(4)">前往 4</button>
-            <hr style="border: 0.5px solid #333; margin: 15px 0;">
+            <hr>
             <button py-click="do_ask()">詢問情報 (1AP)</button>
-            <button py-click="next_phase()" style="background: #28a745;">結束回合</button>
+            <button py-click="next_phase()" id="end-btn" style="background: #28a745; color: white;">結束回合</button>
         </div>
 
-        <h3 style="margin-top: 20px; text-align: left;">遊戲日誌</h3>
+        <h3 style="margin-top: 20px;">遊戲日誌</h3>
         <div id="log"></div>
     </div>
 
     <script type="py" config="./pyscript.json">
-import js
-import random
-from actions import ActionManager
-from settings import STATION_ID
-from mechanics import process_arrival, calculate_sunrise_move, check_sanity_status
-from scenario_gen import ScenarioBuilder
-from abilities import AbilityEngine
-from models import Grave
-from settings import SCRIPTS_DB
+        import js
+        from main import GameEngine
+        from actions import ActionManager
 
-# --- 直接把 GameEngine 寫在這裡，避免讀取外部 main.py ---
-class GameEngine:
-    def __init__(self, logger_callback=None):
-        self.day = 1
-        self.max_days = 4
-        self.is_game_over = False
-        self.graves = []
-        self.ap = 5 
-        self.blocked_locations = []
-        self.log_func = logger_callback if logger_callback else print
+        def web_log(msg):
+            log_div = js.document.getElementById("log")
+            if log_div:
+                new_msg = js.document.createElement("div")
+                new_msg.innerHTML = str(msg)
+                log_div.appendChild(new_msg)
+                log_div.scrollTop = log_div.scrollHeight
 
-        builder = ScenarioBuilder()
-        self.characters, self.scripts = builder.build()
-        
-        self.main_rule = self.scripts[0].get('rule_tag', 'default')
-        self.sub_rule = self.scripts[1].get('rule_tag', 'default')
-        self.foreshadow_data = self.scripts[2]
-        
-        self.ability_engine = AbilityEngine(SCRIPTS_DB.get("Role_Data", {}))
-        self.log(f"📋 劇本構築完成: {self.main_rule}")
-        self._assign_random_intrigue()
+        # 初始化引擎
+        try:
+            engine = GameEngine(logger_callback=web_log)
+            actions = ActionManager(engine)
+            player = engine.characters[0]
+            web_log("🚀 遊戲引擎加載完成！")
+        except Exception as e:
+            web_log(f"❌ 初始化失敗: {e}")
 
-    def log(self, message):
-        if message: self.log_func(message)
+        def update_ui():
+            status = js.document.getElementById("status-bar")
+            status.innerHTML = f"Day: {engine.day} | AP: {engine.ap} | 你的位置: {player.location} | 角色: {player.role}"
+            for i in range(5):
+                loc_div = js.document.getElementById(f"loc-{i}")
+                if loc_div:
+                    loc_div.style.background = "#333" if i == player.location else "transparent"
 
-    def _assign_random_intrigue(self):
-        if self.characters:
-            random.choice(self.characters).intrigue = 1
-            self.log("👁️ 初始陰謀已潛伏...")
+        def move_to(loc_id):
+            success, msg = actions.move(player, int(loc_id))
+            web_log(msg)
+            update_ui()
 
-    def phase_morning(self):
-        self.log(f"\n🏃 第 {self.day} 天早上：自動移動")
-        for c in self.characters[1:]: # 跳過玩家
-            if not c.is_dead:
-                new_loc = calculate_sunrise_move(c.location, self.blocked_locations)
-                process_arrival(c, new_loc, self.log)
+        def do_ask():
+            success, msg = actions.ask(player)
+            web_log(msg)
+            update_ui()
 
-# --- UI 橋接邏輯 ---
-def web_log(msg):
-    log_div = js.document.getElementById("log")
-    if log_div:
-        div = js.document.createElement("div")
-        div.innerHTML = str(msg)
-        log_div.appendChild(div)
-        log_div.scrollTop = log_div.scrollHeight
+        def next_phase():
+            success, msg = actions.end_turn()
+            web_log(msg)
+            update_ui()
 
-# 初始化
-try:
-    engine = GameEngine(logger_callback=web_log)
-    actions = ActionManager(engine)
-    player = engine.characters[0]
-except Exception as e:
-    web_log(f"❌ 錯誤: {e}")
-
-def update_ui():
-    status = js.document.getElementById("status-bar")
-    status.innerHTML = f"Day: {engine.day} | AP: {engine.ap} | 位置: {player.location} | 職業: {player.role}"
-    for i in range(5):
-        loc_div = js.document.getElementById(f"loc-{i}")
-        loc_div.style.background = "#333" if i == player.location else "transparent"
-
-def move_to(loc_id):
-    success, msg = actions.move(player, int(loc_id))
-    web_log(msg)
-    update_ui()
-
-def do_ask():
-    success, msg = actions.ask(player)
-    web_log(msg)
-    update_ui()
-
-def next_phase():
-    # 這裡執行早上移動邏輯
-    engine.phase_morning()
-    engine.ap = 5
-    engine.day += 1
-    web_log(f"--- 進入第 {engine.day} 天 ---")
-    update_ui()
-
-update_ui()
+        update_ui()
     </script>
 </body>
 </html>
